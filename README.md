@@ -3,6 +3,11 @@ Rancher SSH
 
 Native SSH Client for Rancher Containers, provided a powerful native terminal to manage your docker containers
 
+  * It's dead simple. like the ssh cli, you do `rancherssh container_name` to SSH into any containers
+  * It's flexible. rancherssh reads configurations from ENV, from yml or json file
+  * It's powerful. rancherssh searches the whole rancher deployment, SSH into any containers from your workstation, regardless which host it belongs to
+  * It's smart. rancherssh uses fuzzy container name matching. Forget the container name? it doesn't matter, use "*" or "%" instead
+
 Installation
 ============
 
