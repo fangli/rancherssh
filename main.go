@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	VERSION = "1.0.0"
+	VERSION = "1.1.2"
 	AUTHOR  = "FANG LI <surivlee+rancherssh@gmail.com>"
 	USAGE   = `
 Example:
@@ -32,18 +32,18 @@ Configuration:
 
     If you want to use JSON format, create a config.json in the folders with content:
         {
-            "endpoint": "https://your.rancher.server",
+            "endpoint": "https://rancher.server/v1", // Or "https://rancher.server/v1/projects/xxxx"
             "user": "your_access_key",
             "password": "your_access_password"
         }
 
     If you want to use YAML format, create a config.yml with content:
-        endpoint: https://your.rancher.server
+        endpoint: https://your.rancher.server // Or https://rancher.server/v1/projects/xxxx
         user: your_access_key
         password: your_access_password
 
     We accept environment variables as well:
-        SSHRANCHER_ENDPOINT=https://your.rancher.server
+        SSHRANCHER_ENDPOINT=https://your.rancher.server   // Or https://rancher.server/v1/projects/xxxx
         SSHRANCHER_USER=your_access_key
         SSHRANCHER_PASSWORD=your_access_password
 `
@@ -175,7 +175,7 @@ func (r *RancherAPI) makeReq(req *http.Request) (map[string]interface{}, error) 
 }
 
 func (r *RancherAPI) containerUrl(name string) string {
-	req, _ := http.NewRequest("GET", r.formatEndpoint()+"/v1/containers/", nil)
+	req, _ := http.NewRequest("GET", r.formatEndpoint()+"/containers/", nil)
 	q := req.URL.Query()
 	q.Add("name_like", strings.Replace(name, "*", "%", -1))
 	q.Add("state", "running")
@@ -196,19 +196,27 @@ func (r *RancherAPI) containerUrl(name string) string {
 		fmt.Println("We found more than one containers in system:")
 		for i, _ctn := range data {
 			ctn := _ctn.(map[string]interface{})
-			fmt.Println(fmt.Sprintf("[%d] %s, Container ID %s in project %s, IP Address %s on Host %s", i+1, ctn["name"].(string), ctn["id"].(string), ctn["accountId"].(string), ctn["data"].(map[string]interface{})["fields"].(map[string]interface{})["primaryIpAddress"].(string), ctn["data"].(map[string]interface{})["fields"].(map[string]interface{})["dockerHostIp"].(string)))
+			if _, ok := ctn["data"]; ok {
+				fmt.Println(fmt.Sprintf("[%d] %s, Container ID %s in project %s, IP Address %s on Host %s", i+1, ctn["name"].(string), ctn["id"].(string), ctn["accountId"].(string), ctn["data"].(map[string]interface{})["fields"].(map[string]interface{})["primaryIpAddress"].(string), ctn["data"].(map[string]interface{})["fields"].(map[string]interface{})["dockerHostIp"].(string)))
+			} else {
+				fmt.Println(fmt.Sprintf("[%d] %s, Container ID %s in project %s, IP Address %s", i+1, ctn["name"].(string), ctn["id"].(string), ctn["accountId"].(string), ctn["primaryIpAddress"].(string)))
+			}
 		}
 		fmt.Println("--------------------------------------------")
 		fmt.Print("Which one you want to connect: ")
 		fmt.Scan(&choice)
 	}
 	ctn := data[choice-1].(map[string]interface{})
-	fmt.Println(fmt.Sprintf("Target Container: %s, ID %s in project %s, Addr %s on Host %s", ctn["name"].(string), ctn["id"].(string), ctn["accountId"].(string), ctn["data"].(map[string]interface{})["fields"].(map[string]interface{})["primaryIpAddress"].(string), ctn["data"].(map[string]interface{})["fields"].(map[string]interface{})["dockerHostIp"].(string)))
+	if _, ok := ctn["data"]; ok {
+		fmt.Println(fmt.Sprintf("Target Container: %s, ID %s in project %s, Addr %s on Host %s", ctn["name"].(string), ctn["id"].(string), ctn["accountId"].(string), ctn["data"].(map[string]interface{})["fields"].(map[string]interface{})["primaryIpAddress"].(string), ctn["data"].(map[string]interface{})["fields"].(map[string]interface{})["dockerHostIp"].(string)))
+	} else {
+		fmt.Println(fmt.Sprintf("Target Container: %s, ID %s in project %s, Addr %s", ctn["name"].(string), ctn["id"].(string), ctn["accountId"].(string), ctn["primaryIpAddress"].(string)))
+	}
 	return r.formatEndpoint() + fmt.Sprintf(
-		"/v1/projects/%s/containers/%s/", ctn["accountId"].(string), ctn["id"].(string))
+		"/containers/%s/", ctn["id"].(string))
 }
 
-func (r *RancherAPI) execToken(url string) string {
+func (r *RancherAPI) getWsUrl(url string) string {
 	cols, rows, _ := terminal.GetSize(int(os.Stdin.Fd()))
 	req, _ := http.NewRequest("POST", url+"?action=execute",
 		strings.NewReader(fmt.Sprintf(
@@ -221,14 +229,14 @@ func (r *RancherAPI) execToken(url string) string {
 		fmt.Println("Failed to get access token: ", err.Error())
 		os.Exit(1)
 	}
-	return resp["token"].(string)
+	return resp["url"].(string) + "?token=" + resp["token"].(string)
 }
 
-func (r *RancherAPI) getWSConn(token string) *websocket.Conn {
+func (r *RancherAPI) getWSConn(wsUrl string) *websocket.Conn {
 	endpoint := r.formatEndpoint()
 	header := http.Header{}
 	header.Add("Origin", endpoint)
-	conn, _, err := websocket.DefaultDialer.Dial("ws"+endpoint[4:len(endpoint)]+"/v1/exec/?token="+token, header)
+	conn, _, err := websocket.DefaultDialer.Dial(wsUrl, header)
 	if err != nil {
 		fmt.Println("We couldn't connect to this container: ", err.Error())
 		os.Exit(1)
@@ -240,9 +248,9 @@ func (r *RancherAPI) GetContainerConn(name string) *websocket.Conn {
 	fmt.Println("Searching for container " + name)
 	url := r.containerUrl(name)
 	fmt.Println("Getting access token")
-	token := r.execToken(url)
+	wsurl := r.getWsUrl(url)
 	fmt.Println("SSH into container ...")
-	return r.getWSConn(token)
+	return r.getWSConn(wsurl)
 }
 
 func ReadConfig() *Config {
@@ -264,7 +272,7 @@ func ReadConfig() *Config {
 	viper.SetEnvPrefix("rancherssh")
 	viper.AutomaticEnv()
 
-	var endpoint = app.Flag("endpoint", "Rancher server endpoint, https://your.rancher.server/, DO NOT include '/v1'.").Default(viper.GetString("endpoint")).String()
+	var endpoint = app.Flag("endpoint", "Rancher server endpoint, https://your.rancher.server/v1 or https://your.rancher.server/v1/projects/xxx.").Default(viper.GetString("endpoint")).String()
 	var user = app.Flag("user", "Rancher API user/accesskey.").Default(viper.GetString("user")).String()
 	var password = app.Flag("password", "Rancher API password/secret.").Default(viper.GetString("password")).String()
 	var container = app.Arg("container", "Container name, fuzzy match").Required().String()
