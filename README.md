@@ -13,7 +13,7 @@ Installation
 
 **Or via Golang**
 
-`# go get github.com/fangli/rancherssh`
+`# go install github.com/fangli/rancherssh`
 
 
 
