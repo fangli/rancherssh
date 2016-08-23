@@ -8,6 +8,8 @@ Native SSH Client for Rancher Containers, provided a powerful native terminal to
   * It's powerful. rancherssh searches the whole rancher deployment, SSH into any containers from your workstation, regardless which host it belongs to
   * It's smart. rancherssh uses fuzzy container name matching. Forget the container name? it doesn't matter, use "*" or "%" instead
 
+[![asciicast](https://asciinema.org/a/83547.png)](https://asciinema.org/a/83547)
+
 Installation
 ============
 
