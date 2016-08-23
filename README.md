@@ -22,7 +22,7 @@ Installation
 
 **Or via Golang**
 
-`# go install github.com/fangli/rancherssh`
+`# go get github.com/fangli/rancherssh`
 
 
 
