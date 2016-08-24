@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	VERSION = "1.1.2"
+	VERSION = "1.1.3"
 	AUTHOR  = "FANG LI <surivlee+rancherssh@gmail.com>"
 	USAGE   = `
 Example:
