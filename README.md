@@ -57,13 +57,13 @@ Configuration
 
   If you want to use YAML format, create a config.yml with content:
 
-      endpoint: https://your.rancher.server // Or https://rancher.server/v1/projects/xxxx
+      endpoint: https://your.rancher.server/v1 // Or https://rancher.server/v1/projects/xxxx
       user: your_access_key
       password: your_access_password
 
   We accept environment variables as well:
 
-      SSHRANCHER_ENDPOINT=https://your.rancher.server   // Or https://rancher.server/v1/projects/xxxx
+      SSHRANCHER_ENDPOINT=https://your.rancher.server/v1   // Or https://rancher.server/v1/projects/xxxx
       SSHRANCHER_USER=your_access_key
       SSHRANCHER_PASSWORD=your_access_password
 
