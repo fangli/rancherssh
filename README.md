@@ -41,6 +41,12 @@ Example
   rancherssh %proxy%
   
   rancherssh "projectA-app-*" (equals to) rancherssh projectA-app-%
+  
+  copy file from container to local
+  rancherssh my-server --command='cat /file' --out=file
+  
+  copy file from local to container
+  cat file > rancherssh my-server --command='cp /dev/stdin file'
 
 Configuration
 =============
@@ -76,6 +82,8 @@ Flags
       --endpoint=""  Rancher server endpoint, https://your.rancher.server/v1 or https://your.rancher.server/v1/projects/xxx.
       --user=""      Rancher API user/accesskey.
       --password=""  Rancher API password/secret.
+	  --out=""       Write output to file instead of console
+	  --command=""   Execute arbitrary command(s) instead of opening a shell
 
 **Args**
 
